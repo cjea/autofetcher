@@ -2,6 +2,7 @@ package fetcher
 
 import (
 	"fmt"
+	"sync"
 	"time"
 )
 
@@ -13,6 +14,7 @@ type Fetcher struct {
 	FetchTimeout       time.Duration
 	manualFetchRequest chan bool
 	nextPayload        chan interface{}
+	mux                sync.Mutex
 }
 
 // Fetch is the function signature for a fetch operation.
@@ -37,7 +39,9 @@ func New(autoFetchCadence, debouncePeriod time.Duration) *Fetcher {
 func (f *Fetcher) LoopSetPayload() {
 	go func() {
 		for {
+			f.mux.Lock()
 			f.Payload = <-f.nextPayload
+			f.mux.Unlock()
 		}
 	}()
 }
