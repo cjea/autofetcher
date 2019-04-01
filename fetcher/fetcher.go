@@ -12,6 +12,7 @@ type Fetcher struct {
 	AutoFetchCadence   time.Duration
 	DebouncePeriod     time.Duration
 	FetchTimeout       time.Duration
+	LastManualFetch    time.Time
 	manualFetchRequest chan bool
 	nextPayload        chan interface{}
 	mux                sync.Mutex
@@ -39,9 +40,7 @@ func New(autoFetchCadence, debouncePeriod time.Duration) *Fetcher {
 func (f *Fetcher) LoopSetPayload() {
 	go func() {
 		for {
-			f.mux.Lock()
 			f.Payload = <-f.nextPayload
-			f.mux.Unlock()
 		}
 	}()
 }
@@ -69,7 +68,6 @@ func (f *Fetcher) LoopAutoFetch(fn Fetch) {
 			fmt.Println("Beginning auto fetch")
 			logTime()
 			f.WaitFor(fn)
-			time.Sleep(f.AutoFetchCadence)
 		}
 	}()
 }
@@ -88,7 +86,7 @@ func (f *Fetcher) ManualFetchDebounce(fn Fetch) {
 			fmt.Println("Beginning manual fetch")
 			logTime()
 			f.WaitFor(fn)
-			time.Sleep(f.DebouncePeriod)
+			f.LastManualFetch = time.Now().UTC()
 		}
 	}()
 }
@@ -96,10 +94,32 @@ func (f *Fetcher) ManualFetchDebounce(fn Fetch) {
 // Run runs the fetching behavior.
 // 	- run the function at least once every AutoFetchCadence time period
 // 	- run manual invocations at most once every DebouncePeriod time period
-func (f *Fetcher) Run(fn Fetch) {
+func (f *Fetcher) Run(fn Fetch) chan bool {
+	quit := make(chan bool)
 	f.LoopSetPayload()
-	f.LoopAutoFetch(fn)
-	f.ManualFetchDebounce(fn)
+	go func() {
+		for {
+			select {
+			case <-time.After(f.AutoFetchCadence):
+				fmt.Println("Beginning auto fetch")
+				logTime()
+				f.WaitFor(fn)
+			case <-f.manualFetchRequest:
+				if time.Since(f.LastManualFetch) >= f.DebouncePeriod {
+					fmt.Println("Beginning manual fetch")
+					logTime()
+					f.WaitFor(fn)
+					f.LastManualFetch = time.Now().UTC()
+				}
+			case <-quit:
+				fmt.Println("returning!")
+				return
+			}
+		}
+	}()
+	return quit
+	// f.LoopAutoFetch(fn)
+	// f.ManualFetchDebounce(fn)
 }
 
 func logTime() {
