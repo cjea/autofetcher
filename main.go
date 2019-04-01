@@ -8,26 +8,29 @@ import (
 )
 
 func main() {
-	fmt.Println("Initializing...")
-	f := fetcher.New(1*time.Second, 5*time.Second)
-	f.Run(getFetch())
-	select {
-	case <-time.After(10 * time.Second):
-		fmt.Println(f.Payload)
-	}
+	f := fetcher.New(2*time.Second, 5*time.Second)
+	go func() { f.Run(getFetch()) }()
+
+	time.Sleep(2 * time.Second)
+
+	// Following are debounced
+	go func() { f.TriggerManualFetch() }()
+	go func() { f.TriggerManualFetch() }()
+	go func() { f.TriggerManualFetch() }()
+
+	time.Sleep(6 * time.Second)
+	fmt.Println(f.Payload)
 }
 
 func getFetch() fetcher.Fetch {
-	count := 0
+	count := 1
 	return func(res chan interface{}, quit chan bool) {
 		i := rand.Intn(3)
-		// i := 0.5
 		seconds, _ := time.ParseDuration(fmt.Sprintf("%ds", i))
-		fmt.Println(fmt.Sprintf("Fetching... This will take %d seconds", i))
-		// fmt.Println("Fetching... This will take 0.5 seconds")
+		// fmt.Println(fmt.Sprintf("Fetching... This will take %d seconds", i))
 		select {
 		case <-time.After(seconds):
-			fmt.Println("Fetch complete")
+			fmt.Println("Fetch complete\n")
 			res <- fmt.Sprintf("foo %d", count)
 			count = count + 1
 		case <-quit:

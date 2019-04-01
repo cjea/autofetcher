@@ -5,21 +5,13 @@ import (
 	"time"
 )
 
-// Status represents the state of a fetch
-type Status int
-
-const (
-	// Done indicates that the system is ready to fetch
-	Done Status = iota
-)
-
 // Fetcher is the main type
 type Fetcher struct {
-	manualFetchRequest chan bool
 	Payload            interface{}
 	AutoFetchCadence   time.Duration
 	DebouncePeriod     time.Duration
 	FetchTimeout       time.Duration
+	manualFetchRequest chan bool
 	nextPayload        chan interface{}
 }
 
@@ -71,6 +63,8 @@ func (f *Fetcher) LoopAutoFetch(fn Fetch) {
 	go func() {
 		for {
 			fmt.Println("Beginning auto fetch")
+			_, m, s := time.Now().Clock()
+			fmt.Println(fmt.Sprintf("Clock:\t%dm%ds", m, s))
 			f.WaitFor(fn)
 			time.Sleep(f.AutoFetchCadence)
 		}
@@ -89,6 +83,8 @@ func (f *Fetcher) ManualFetchDebounce(fn Fetch) {
 		for {
 			<-f.manualFetchRequest
 			fmt.Println("Beginning manual fetch")
+			_, m, s := time.Now().Clock()
+			fmt.Println(fmt.Sprintf("Clock:\t%dm%ds", m, s))
 			f.WaitFor(fn)
 			time.Sleep(f.DebouncePeriod)
 		}
@@ -97,7 +93,7 @@ func (f *Fetcher) ManualFetchDebounce(fn Fetch) {
 
 // Run runs the fetching behavior.
 // 	- run the function at least once every AutoFetchCadence time period
-// 	- run the function at most once every DebouncePeriod time period
+// 	- run manual invocations at most once every DebouncePeriod time period
 func (f *Fetcher) Run(fn Fetch) {
 	f.LoopSetPayload()
 	f.LoopAutoFetch(fn)
