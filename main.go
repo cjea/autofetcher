@@ -16,11 +16,10 @@ func main() {
 	go func() { f.TriggerManualFetch() }()
 	go func() { f.TriggerManualFetch() }()
 
-	// time.Sleep(6 * time.Second)
+	time.Sleep(6 * time.Second)
 	quit <- true
-	f.Mux.Lock()
-	fmt.Println(f.Payload)
-	f.Mux.Unlock()
+	payload := f.GetPayload()
+	fmt.Println(payload)
 }
 
 func getFetch() fetcher.Fetch {

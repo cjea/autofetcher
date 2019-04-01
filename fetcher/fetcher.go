@@ -18,6 +18,13 @@ type Fetcher struct {
 	Mux                sync.Mutex
 }
 
+// WithLock performs an action with mutex lock/unlock
+func (f *Fetcher) WithLock(fn func(*Fetcher)) {
+	f.Mux.Lock()
+	fn(f)
+	f.Mux.Unlock()
+}
+
 // Fetch is the function signature for a fetch operation.
 // The result of the fetch should be written to the out channel
 type Fetch = func(out chan interface{}, quit chan bool)
@@ -36,15 +43,11 @@ func New(autoFetchCadence, debouncePeriod time.Duration) *Fetcher {
 	}
 }
 
-// LoopSetPayload watches to set payload
-func (f *Fetcher) LoopSetPayload() {
-	go func() {
-		for {
-			f.Mux.Lock()
-			f.Payload = <-f.nextPayload
-			f.Mux.Unlock()
-		}
-	}()
+// GetPayload returns the current payload
+func (f *Fetcher) GetPayload() interface{} {
+	var p interface{}
+	f.WithLock(func(f *Fetcher) { fmt.Println("getting it"); p = f.Payload })
+	return p
 }
 
 // WaitFor either gets the payload or cancels the fetch
@@ -54,7 +57,7 @@ func (f *Fetcher) WaitFor(fn Fetch) {
 	go func() { fn(res, quit) }()
 	select {
 	case next := <-res:
-		f.nextPayload <- next
+		go func() { f.nextPayload <- next }()
 		return
 	case <-time.After(f.FetchTimeout):
 		quit <- true
@@ -72,21 +75,22 @@ func (f *Fetcher) TriggerManualFetch() {
 // Run runs the fetching behavior.
 // 	- run the function at least once every AutoFetchCadence time period
 // 	- run manual invocations at most once every DebouncePeriod time period
-func (f *Fetcher) Run(fn Fetch) chan bool {
+func (f *Fetcher) Run(fetch Fetch) chan bool {
 	quit := make(chan bool)
-	f.LoopSetPayload()
 	go func() {
 		for {
 			select {
+			case next := <-f.nextPayload:
+				f.WithLock(func(f *Fetcher) { f.Payload = next })
 			case <-time.After(f.AutoFetchCadence):
 				fmt.Println("Beginning auto fetch")
 				logTime()
-				f.WaitFor(fn)
+				go func() { f.WaitFor(fetch) }()
 			case <-f.manualFetchRequest:
 				if time.Since(f.LastManualFetch) >= f.DebouncePeriod {
 					fmt.Println("Beginning manual fetch")
 					logTime()
-					f.WaitFor(fn)
+					f.WaitFor(fetch)
 					f.LastManualFetch = time.Now().UTC()
 				}
 			case <-quit:
