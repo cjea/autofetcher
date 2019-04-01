@@ -15,8 +15,8 @@ type Fetcher struct {
 	nextPayload        chan interface{}
 }
 
-// Fetch is the function signature for a fetcher.
-// The result will be set as Payload field
+// Fetch is the function signature for a fetch operation.
+// The result of the fetch should be written to the out channel
 type Fetch = func(out chan interface{}, quit chan bool)
 
 // New returns a new fetcher
