@@ -40,7 +40,9 @@ func New(autoFetchCadence, debouncePeriod time.Duration) *Fetcher {
 func (f *Fetcher) LoopSetPayload() {
 	go func() {
 		for {
+			f.Mux.Lock()
 			f.Payload = <-f.nextPayload
+			f.Mux.Unlock()
 		}
 	}()
 }
