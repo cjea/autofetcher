@@ -76,6 +76,8 @@ func (f *Fetcher) Run(fetch Fetch) chan bool {
 					logTime()
 					f.WaitFor(fetch)
 					f.LastManualFetch = time.Now().UTC()
+				} else {
+					fmt.Println("Cannot perform manual fetch yet. Please wait and try again")
 				}
 			case <-quit:
 				fmt.Println("returning!")
@@ -89,5 +91,4 @@ func (f *Fetcher) Run(fetch Fetch) chan bool {
 func logTime() {
 	_, m, s := time.Now().Clock()
 	fmt.Println(fmt.Sprintf("Clock:\t%dm%ds", m, s))
-	fmt.Println()
 }
