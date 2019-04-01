@@ -18,8 +18,9 @@ func main() {
 
 	time.Sleep(6 * time.Second)
 	quit <- true
-
+	// f.Mux.Lock()
 	fmt.Println(f.Payload)
+	// f.Mux.Unlock()
 }
 
 func getFetch() fetcher.Fetch {

@@ -15,7 +15,7 @@ type Fetcher struct {
 	LastManualFetch    time.Time
 	manualFetchRequest chan bool
 	nextPayload        chan interface{}
-	mux                sync.Mutex
+	Mux                sync.Mutex
 }
 
 // Fetch is the function signature for a fetch operation.
