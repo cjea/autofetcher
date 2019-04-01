@@ -63,34 +63,10 @@ func (f *Fetcher) WaitFor(fn Fetch) {
 	}
 }
 
-// LoopAutoFetch loops and fetches automatically
-func (f *Fetcher) LoopAutoFetch(fn Fetch) {
-	go func() {
-		for {
-			fmt.Println("Beginning auto fetch")
-			logTime()
-			f.WaitFor(fn)
-		}
-	}()
-}
-
 // TriggerManualFetch will cause a manual fetch to be performed
 // in a concurrent-safe way
 func (f *Fetcher) TriggerManualFetch() {
 	f.manualFetchRequest <- true
-}
-
-// ManualFetchDebounce loops and fetches automatically
-func (f *Fetcher) ManualFetchDebounce(fn Fetch) {
-	go func() {
-		for {
-			<-f.manualFetchRequest
-			fmt.Println("Beginning manual fetch")
-			logTime()
-			f.WaitFor(fn)
-			f.LastManualFetch = time.Now().UTC()
-		}
-	}()
 }
 
 // Run runs the fetching behavior.
@@ -120,8 +96,6 @@ func (f *Fetcher) Run(fn Fetch) chan bool {
 		}
 	}()
 	return quit
-	// f.LoopAutoFetch(fn)
-	// f.ManualFetchDebounce(fn)
 }
 
 func logTime() {
