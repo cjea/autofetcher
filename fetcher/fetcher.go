@@ -63,8 +63,7 @@ func (f *Fetcher) LoopAutoFetch(fn Fetch) {
 	go func() {
 		for {
 			fmt.Println("Beginning auto fetch")
-			_, m, s := time.Now().Clock()
-			fmt.Println(fmt.Sprintf("Clock:\t%dm%ds", m, s))
+			logTime()
 			f.WaitFor(fn)
 			time.Sleep(f.AutoFetchCadence)
 		}
@@ -83,8 +82,7 @@ func (f *Fetcher) ManualFetchDebounce(fn Fetch) {
 		for {
 			<-f.manualFetchRequest
 			fmt.Println("Beginning manual fetch")
-			_, m, s := time.Now().Clock()
-			fmt.Println(fmt.Sprintf("Clock:\t%dm%ds", m, s))
+			logTime()
 			f.WaitFor(fn)
 			time.Sleep(f.DebouncePeriod)
 		}
@@ -98,4 +96,10 @@ func (f *Fetcher) Run(fn Fetch) {
 	f.LoopSetPayload()
 	f.LoopAutoFetch(fn)
 	f.ManualFetchDebounce(fn)
+}
+
+func logTime() {
+	_, m, s := time.Now().Clock()
+	fmt.Println(fmt.Sprintf("Clock:\t%dm%ds", m, s))
+	fmt.Println()
 }
