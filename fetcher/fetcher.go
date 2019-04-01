@@ -2,7 +2,6 @@ package fetcher
 
 import (
 	"fmt"
-	"sync"
 	"time"
 )
 
@@ -15,14 +14,6 @@ type Fetcher struct {
 	LastManualFetch    time.Time
 	manualFetchRequest chan bool
 	nextPayload        chan interface{}
-	Mux                sync.Mutex
-}
-
-// WithLock performs an action with mutex lock/unlock
-func (f *Fetcher) WithLock(fn func(*Fetcher)) {
-	f.Mux.Lock()
-	fn(f)
-	f.Mux.Unlock()
 }
 
 // Fetch is the function signature for a fetch operation.
@@ -45,9 +36,7 @@ func New(autoFetchCadence, debouncePeriod time.Duration) *Fetcher {
 
 // GetPayload returns the current payload
 func (f *Fetcher) GetPayload() interface{} {
-	var p interface{}
-	f.WithLock(func(f *Fetcher) { fmt.Println("getting it"); p = f.Payload })
-	return p
+	return f.Payload
 }
 
 // WaitFor either gets the payload or cancels the fetch
@@ -81,7 +70,7 @@ func (f *Fetcher) Run(fetch Fetch) chan bool {
 		for {
 			select {
 			case next := <-f.nextPayload:
-				f.WithLock(func(f *Fetcher) { f.Payload = next })
+				f.Payload = next
 			case <-time.After(f.AutoFetchCadence):
 				fmt.Println("Beginning auto fetch")
 				logTime()
