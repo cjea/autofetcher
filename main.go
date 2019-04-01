@@ -16,10 +16,9 @@ func main() {
 	go func() { f.TriggerManualFetch() }()
 	go func() { f.TriggerManualFetch() }()
 
-	time.Sleep(6 * time.Second)
+	time.Sleep(10 * time.Second)
 	quit <- true
-	payload := f.GetPayload()
-	fmt.Println(payload)
+	fmt.Println(f.Payload)
 }
 
 func getFetch() fetcher.Fetch {

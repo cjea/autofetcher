@@ -34,11 +34,6 @@ func New(autoFetchCadence, debouncePeriod time.Duration) *Fetcher {
 	}
 }
 
-// GetPayload returns the current payload
-func (f *Fetcher) GetPayload() interface{} {
-	return f.Payload
-}
-
 // WaitFor either gets the payload or cancels the fetch
 func (f *Fetcher) WaitFor(fn Fetch) {
 	res := make(chan interface{})
